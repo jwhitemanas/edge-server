@@ -25,20 +25,18 @@ const listener = net.createServer((socket) => {
   console.log("IPC connect");
   socket.setEncoding("utf8");
   socket.on("data", (data) => {
-    const text = data.toString().trim();
+    const cleanData = data.toString().trim();
+    const client = cleanData.slice(0, 36);
+    const body = cleanData.slice(36);
     let msg;
     try {
-      msg = JSON.parse(text);
+      msg = JSON.parse(body);
     } catch (err) {
       console.error("Invalid JSON from local process:", err.message);
       return;
     }
-    if (!msg.id || typeof msg.id !== "string") {
-      console.error("Missing or invalid 'id' field");
-      return;
-    }
-    if (!msg.timestamp || typeof msg.timestamp !== "number") {
-      console.error("Missing or invalid 'timestamp' field");
+    if (!msg.client || typeof msg.client !== "string") {
+      console.error("Missing or invalid 'client' field");
       return;
     }
     if (!msg.type || typeof msg.type !== "string") {
@@ -51,7 +49,7 @@ const listener = net.createServer((socket) => {
     }
 	switch (msg.type) {
 		case "track-event":
-			const response = {"type": "response", "data": {"request": msg.id, "status": 200}};
+			const response = {"client": client, "data": {"type": "response", "data": {"request": msg.id, "status": 200}}};
 			attemptSend(response);
 			break;
 	}
