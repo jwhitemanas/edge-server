@@ -35,10 +35,6 @@ const listener = net.createServer((socket) => {
       console.error("Invalid JSON from local process:", err.message);
       return;
     }
-    if (!msg.client || typeof msg.client !== "string") {
-      console.error("Missing or invalid 'client' field");
-      return;
-    }
     if (!msg.type || typeof msg.type !== "string") {
       console.error("Missing or invalid 'type' field");
       return;
