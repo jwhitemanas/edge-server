@@ -48,7 +48,7 @@ function addClientEvent(eventData, callback) {
                     sb.from('client_events_em_classic').insert([{
                         id: emData.id,
                         peak: emData.peak,
-                        null: emData.null,
+                        "null": emData["null"],
                         compass: emData.compass,
                         depth: emData.depth,
                         timestamp: emData.timestamp
