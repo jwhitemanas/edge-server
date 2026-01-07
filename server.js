@@ -19,53 +19,52 @@ function addClientEvent(eventData, callback) {
         user_id: eventData.user_id,
         device_id: eventData.device_id
     }]).then(({ data, clientEventError }) => {
-        switch (eventData.event) {
-            case "em-raw": {
-                const emData = eventData.data;
-                sb.from('client_events_em_raw').insert([{
-                    id: emData.id,
-                    channel: emData.channel,
-                    peak: emData.peak,
-                    crossing: emData.crossing,
-                    frequency: emData.frequency,
-                    error: emData.error,
-                    timestamp: emData.timestamp
-                }]).then(({ data, emRawError }) => {
-                    if (emRawError) {
+        if (clientEventError) {
+            callback(clientEventError);
+        } else {
+            switch (eventData.event) {
+                case "em-raw": {
+                    const emData = eventData.data;
+                    sb.from('client_events_em_raw').insert([{
+                        id: emData.id,
+                        channel: emData.channel,
+                        peak: emData.peak,
+                        crossing: emData.crossing,
+                        frequency: emData.frequency,
+                        error: emData.error,
+                        timestamp: emData.timestamp
+                    }]).then(({ data, emRawError }) => {
+                        if (emRawError) {
+                            callback(emRawError);
+                        } else {
+                            callback(null);
+                        }
+                    }).catch((emRawError) => {
                         callback(emRawError);
-                    } else {
-                        callback(null);
-                    }
-                }).catch((emRawError) => {
-                    callback(emRawError);
-                });
-                break;
-            } case "em-classic": {
-                const emData = eventData.data;
-                sb.from('client_events_em_classic').insert([{
-                    id: emData.id,
-                    peak: emData.peak,
-                    null: emData.null,
-                    compass: emData.compass,
-                    depth: emData.depth,
-                    timestamp: emData.timestamp
-                }]).then(({ data, emClassicError }) => {
-                    if (emClassicError) {
+                    });
+                    break;
+                } case "em-classic": {
+                    const emData = eventData.data;
+                    sb.from('client_events_em_classic').insert([{
+                        id: emData.id,
+                        peak: emData.peak,
+                        null: emData.null,
+                        compass: emData.compass,
+                        depth: emData.depth,
+                        timestamp: emData.timestamp
+                    }]).then(({ data, emClassicError }) => {
+                        if (emClassicError) {
+                            callback(emClassicError);
+                        } else {
+                            callback(null);
+                        }
+                    }).catch((emClassicError) => {
                         callback(emClassicError);
-                    } else {
-                        callback(null);
-                    }
-                }).catch((emClassicError) => {
-                    callback(emClassicError);
-                });
-                break;
-            } default: {
-                if (clientEventError) {
-                    callback(clientEventError);
-                } else {
+                    });
+                    break;
+                } default: {
                     callback(null);
                 }
-                break;
             }
         }
     }).catch((clientEventError) => {
