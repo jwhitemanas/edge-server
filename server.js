@@ -1,5 +1,25 @@
 const net = require('net');
-const ws = net.createConnection({ host: '127.0.0.1', port: 3001 });
+let ws = null;
+let connecting = false;
+
+function connect(callback) {
+  connecting = true;
+  ws = net.createConnection({ host: '127.0.0.1', port: 3001 }, () => {
+    connecting = false;
+    console.log("Connection to websocket server established");
+    callback();
+  });
+  ws.on('error', (err) => {
+    console.error("IPC connection error:", err.message);
+    connecting = false;
+    ws.destroy();
+    ws = null;
+  });
+  ws.on('close', () => {
+    console.log("IPC connection closed");
+    ws = null;
+  });
+}
 
 const listener = net.createServer((socket) => {
   console.log("IPC connect");
@@ -32,7 +52,7 @@ const listener = net.createServer((socket) => {
 	switch (msg.type) {
 		case "track-event":
 			const response = {"type": "response", "data": {"request": msg.id, "status": 200}};
-			send(response);
+			attemptSend(response);
 			break;
 	}
   });
@@ -49,8 +69,24 @@ listener.listen(port, "127.0.0.1", () => {
   console.log(`IPC started on ${port}`);
 });
 
+function attemptSend(response) {
+	if (!ws || ws.destroyed) {
+		connect(() => {
+			send(response);
+		});
+		return;
+	}
+	send(response);
+}
+
 function send(response) {
 	const text = JSON.stringify(response) + "\n"
-	ws.write(text);
+	try {
+		ws.write(text);
+	} catch (err) {
+		console.error("Send failed: ", err.message);
+		ws.destroy();
+		ws = null;
+	}
 }
 
