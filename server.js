@@ -1,6 +1,7 @@
 import net from 'net';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -11,55 +12,57 @@ let connecting = false;
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 function addClientEvent(eventData, callback) {
+    const eventId = uuidv4();
     sb.from('client_events').insert([{
+        id: eventId,
         event: eventData.event,
         context: eventData.context,
         timestamp: eventData.timestamp,
         source: eventData.source, // must be 'web', 'android', or 'firmware'
         user_id: eventData.user_id,
         device_id: eventData.device_id
-    }]).then(({ data, clientEventError }) => {
-        if (clientEventError) {
-            callback(clientEventError);
+    }]).then(({ data, error }) => {
+        if (error) {
+            callback(error);
         } else {
             switch (eventData.event) {
                 case "em-raw": {
                     const emData = eventData.data;
                     sb.from('client_events_em_raw').insert([{
-                        id: emData.id,
+                        event_id: eventId,
                         channel: emData.channel,
                         peak: emData.peak,
                         crossing: emData.crossing,
                         frequency: emData.frequency,
                         error: emData.error,
                         timestamp: emData.timestamp
-                    }]).then(({ data, emRawError }) => {
-                        if (emRawError) {
-                            callback(emRawError);
+                    }]).then(({ data, error }) => {
+                        if (error) {
+                            callback(error);
                         } else {
                             callback(null);
                         }
-                    }).catch((emRawError) => {
-                        callback(emRawError);
+                    }).catch((err) => {
+                        callback(err);
                     });
                     break;
                 } case "em-classic": {
                     const emData = eventData.data;
                     sb.from('client_events_em_classic').insert([{
-                        id: emData.id,
+                        event_id: eventId,
                         peak: emData.peak,
                         "null": emData["null"],
                         compass: emData.compass,
                         depth: emData.depth,
                         timestamp: emData.timestamp
-                    }]).then(({ data, emClassicError }) => {
-                        if (emClassicError) {
-                            callback(emClassicError);
+                    }]).then(({ data, error }) => {
+                        if (error) {
+                            callback(error);
                         } else {
                             callback(null);
                         }
-                    }).catch((emClassicError) => {
-                        callback(emClassicError);
+                    }).catch((err) => {
+                        callback(err);
                     });
                     break;
                 } default: {
@@ -67,8 +70,8 @@ function addClientEvent(eventData, callback) {
                 }
             }
         }
-    }).catch((clientEventError) => {
-        callback(clientEventError);
+    }).catch((err) => {
+        callback(err);
     });
 }
 

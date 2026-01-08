@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.90.0",
     "dotenv": "^17.2.3",
+    "uuid": "^13.0.0",
     "ws": "^8.19.0"
   }
 }
