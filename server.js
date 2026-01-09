@@ -13,8 +13,17 @@ const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 function addClientEvent(eventData, callback) {
     const eventId = uuidv4();
+    const { count, error } = sb.from('client_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('fingerprint', eventData.fingerprint)
+    const exists = count > 0
+    if (exists) {
+        callback(null);
+        return;
+    }
     sb.from('client_events').insert([{
         id: eventId,
+        fingerprint: eventData.fingerprint,
         event: eventData.event,
         context: eventData.context,
         timestamp: eventData.timestamp,
