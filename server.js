@@ -65,10 +65,10 @@ function addClientEventData(eventId, eventData, callback) {
     }
 }
 
-function checkFingerprint(done, forward) {
+function checkFingerprint(fingerprint, done, forward) {
     sb.from('client_events')
         .select('*', { count: 'exact', head: true })
-        .eq('fingerprint', eventData.fingerprint)
+        .eq('fingerprint', fingerprint)
         .then(({ count, error }) => {
             const exists = count > 0
             if (error) {
@@ -109,7 +109,7 @@ function addClientEvent(eventData, callback) {
 }
 
 function upsertClientEvent(eventData, callback) {
-    checkFingerprint(callback, () => {
+    checkFingerprint(eventData.fingerprint, callback, () => {
         addClientEvent(eventData, callback);
     });
 }
