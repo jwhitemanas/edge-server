@@ -85,7 +85,7 @@ function checkFingerprint(done, forward) {
         });
 }
 
-function addClientEvent(callback) {
+function addClientEvent(eventData, callback) {
     const eventId = uuidv4();
     console.log("New event with fingerprint ", eventData.fingerprint);
     sb.from('client_events').insert([{
@@ -110,7 +110,7 @@ function addClientEvent(callback) {
 
 function upsertClientEvent(eventData, callback) {
     checkFingerprint(callback, () => {
-        addClientEvent(callback);
+        addClientEvent(eventData, callback);
     });
 }
 
