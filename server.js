@@ -17,7 +17,11 @@ function addClientEvent(eventData, callback) {
       .select('*', { count: 'exact', head: true })
       .eq('fingerprint', eventData.fingerprint)
     const exists = count > 0
+    if (error) {
+        console.error("Fingerprint check failed: ", err.message);
+    }
     if (exists) {
+        console.log("Fingerprint found, no duplicate entry for client event made.");
         callback(null);
         return;
     }
