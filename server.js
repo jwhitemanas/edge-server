@@ -11,20 +11,83 @@ let ws = null;
 let connecting = false;
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-function addClientEvent(eventData, callback) {
+function addEmRaw(eventId, emData, callback) {
+    sb.from('client_events_em_raw').insert([{
+        event_id: eventId,
+        channel: emData.channel,
+        peak: emData.peak,
+        crossing: emData.crossing,
+        frequency: emData.frequency,
+        error: emData.error,
+        timestamp: emData.timestamp
+    }]).then(({ data, error }) => {
+        if (error) {
+            callback(error);
+        } else {
+            callback(null);
+        }
+    }).catch((err) => {
+        callback(err);
+    });
+}
+
+function addEmClassic(eventId, emData, callback) {
+    sb.from('client_events_em_classic').insert([{
+        event_id: eventId,
+        peak: emData.peak,
+        "null": emData["null"],
+        compass: emData.compass,
+        depth: emData.depth,
+        timestamp: emData.timestamp
+    }]).then(({ data, error }) => {
+        if (error) {
+            callback(error);
+        } else {
+            callback(null);
+        }
+    }).catch((err) => {
+        callback(err);
+    });
+}
+
+function addClientEventData(eventId, eventData, callback) {
+    switch (eventData.event) {
+        case "em-raw": {
+            addEmRaw(eventId, eventData.data, callback);
+            break;
+        } case "em-classic": {
+            addEmClassic(eventId, eventData.data, callback);
+            break;
+        } default: {
+            callback(null);
+            break;
+        }
+    }
+}
+
+function checkFingerprint(done, forward) {
+    sb.from('client_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('fingerprint', eventData.fingerprint)
+        .then(({ count, error }) => {
+            const exists = count > 0
+            if (error) {
+                console.error("Fingerprint DB failure: ", error.message);
+            }
+            if (exists) {
+                console.log("Fingerprint found, no duplicate entry for client event made.");
+                done();
+            } else {
+                forward();
+            }
+        }).catch(({ err }) => {
+            console.error("Fingerprint request failure: ", err.message);
+        });
+}
+
+function addClientEvent(callback) {
     const eventId = uuidv4();
-    const { count, error } = sb.from('client_events')
-      .select('*', { count: 'exact', head: true })
-      .eq('fingerprint', eventData.fingerprint)
-    const exists = count > 0
-    if (error) {
-        console.error("Fingerprint check failed: ", err.message);
-    }
-    if (exists) {
-        console.log("Fingerprint found, no duplicate entry for client event made.");
-        callback(null);
-        return;
-    }
+    console.log("New event with fingerprint ", eventData.fingerprint);
     sb.from('client_events').insert([{
         id: eventId,
         fingerprint: eventData.fingerprint,
@@ -38,53 +101,16 @@ function addClientEvent(eventData, callback) {
         if (error) {
             callback(error);
         } else {
-            switch (eventData.event) {
-                case "em-raw": {
-                    const emData = eventData.data;
-                    sb.from('client_events_em_raw').insert([{
-                        event_id: eventId,
-                        channel: emData.channel,
-                        peak: emData.peak,
-                        crossing: emData.crossing,
-                        frequency: emData.frequency,
-                        error: emData.error,
-                        timestamp: emData.timestamp
-                    }]).then(({ data, error }) => {
-                        if (error) {
-                            callback(error);
-                        } else {
-                            callback(null);
-                        }
-                    }).catch((err) => {
-                        callback(err);
-                    });
-                    break;
-                } case "em-classic": {
-                    const emData = eventData.data;
-                    sb.from('client_events_em_classic').insert([{
-                        event_id: eventId,
-                        peak: emData.peak,
-                        "null": emData["null"],
-                        compass: emData.compass,
-                        depth: emData.depth,
-                        timestamp: emData.timestamp
-                    }]).then(({ data, error }) => {
-                        if (error) {
-                            callback(error);
-                        } else {
-                            callback(null);
-                        }
-                    }).catch((err) => {
-                        callback(err);
-                    });
-                    break;
-                } default: {
-                    callback(null);
-                }
-            }
+            addClientEventData(eventId, eventData, callback);
         }
     }).catch((err) => {
         callback(err);
+    });
+}
+
+function upsertClientEvent(eventData, callback) {
+    checkFingerprint(callback, () => {
+        addClientEvent(callback);
     });
 }
 
@@ -110,7 +136,7 @@ function connect(callback) {
 function processMessage(id, client, type, item) {
     switch (type) {
         case "track-event": {
-            addClientEvent(item, (err) => {
+            upsertClientEvent(item, (err) => {
                 if (!err) {
                     const response = {"client": client, "data": {"type": "response", "data": {"request": id, "status": 200}}};
                     attemptSend(response);
