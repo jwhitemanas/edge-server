@@ -94,6 +94,22 @@ function connect(callback) {
     });
 }
 
+function processMessage(id, client, type, item) {
+    switch (type) {
+        case "track-event": {
+            addClientEvent(item, (err) => {
+                if (!err) {
+                    const response = {"client": client, "data": {"type": "response", "data": {"request": id, "status": 200}}};
+                    attemptSend(response);
+                } else {
+                    console.error("Supabase insert failed: ", err.message);
+                }
+            });
+            break;
+        }
+    }
+}
+
 const listener = net.createServer((socket) => {
     console.log("IPC connect");
     socket.setEncoding("utf8");
@@ -112,22 +128,16 @@ const listener = net.createServer((socket) => {
             console.error("Missing or invalid 'type' field");
             return;
         }
-        if (typeof msg.data !== "object" || msg.data === null || Array.isArray(msg.data)) {
+        if (msg.data === null || (typeof msg.data !== "object" && !Array.isArray(msg.data))) {
             console.error("Missing or invalid 'data' field");
             return;
         }
-        switch (msg.type) {
-            case "track-event": {
-                addClientEvent(msg.data, (err) => {
-                    if (!err) {
-                        const response = {"client": client, "data": {"type": "response", "data": {"request": msg.id, "status": 200}}};
-                        attemptSend(response);
-                    } else {
-                        console.error("Supabase insert failed: ", err.message);
-                    }
-                });
-                break;
-            }
+        if (Array.isArray(msg.data)) {
+            msg.data.forEach((item, index) => {
+                processMessage(msg.id, client, msg.type, item);
+            });
+        } else {
+            processMessage(msg.id, client, msg.type, msg.data);
         }
     });
     socket.on("close", () => {
