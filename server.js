@@ -101,7 +101,7 @@ function addClientEvent(eventData, callback) {
         if (error) {
             callback(error);
         } else {
-            addClientEventData(eventId, eventData, callback);
+            addClientEventData(eventData.fingerprint, eventData, callback);
         }
     }).catch((err) => {
         callback(err);
@@ -135,7 +135,7 @@ function connect(callback) {
 
 function processMessage(id, client, type, item) {
     switch (type) {
-        case "track-event": {
+        case "client_event": {
             upsertClientEvent(item, (err) => {
                 if (!err) {
                     const response = {"client": client, "data": {"type": "response", "data": {"request": id, "status": 200}}};
