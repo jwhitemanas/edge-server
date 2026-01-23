@@ -35,7 +35,7 @@ function addEmClassic(eventId, emData, callback) {
     sb.from('client_events_em_classic').insert([{
         event_id: eventId,
         peak: emData.peak,
-        "null": emData["null"],
+        antipeak: emData.antipeak,
         compass: emData.compass,
         depth: emData.depth,
         timestamp: emData.timestamp
